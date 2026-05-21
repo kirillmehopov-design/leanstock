@@ -8,7 +8,7 @@ RUN apt-get update \
 
 COPY package.json package-lock.json ./
 
-RUN npm ci --no-audit --no-fund
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 COPY prisma ./prisma
 

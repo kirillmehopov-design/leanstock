@@ -1,0 +1,30 @@
+leanstock_final/
+├── src/                         # Express backend source
+│   ├── app.js                   # Express app, CORS, Swagger, routes
+│   ├── server.js                # API bootstrap and worker startup
+│   ├── config/                  # env, Prisma, Redis
+│   ├── controllers/             # HTTP controllers
+│   ├── services/                # business logic and transactions
+│   ├── middleware/              # JWT, tenant resolving, RBAC, validation, errors
+│   ├── validators/              # Zod schemas for request bodies
+│   ├── routes/                  # API endpoint wiring
+│   ├── queues/                  # BullMQ queues
+│   ├── jobs/                    # email, dead-stock, reservation-expiry workers
+│   └── utils/                   # tokens, password hashing, pagination, slug
+├── prisma/
+│   ├── schema.prisma            # ORM schema and relations
+│   └── migrations/              # migration history
+├── tests/                       # unit and integration tests
+├── frontend/                    # functional HTML/JS demo frontend
+│   ├── Dockerfile
+│   ├── index.html
+│   └── app.js
+├── postman/                     # defense Postman collections
+├── docker-compose.yml           # backend + frontend + postgres + redis + worker
+├── Dockerfile                   # backend image
+├── openapi.yaml                 # Swagger contract
+├── CHECKLIST.txt
+├── DEPLOYED_URL.txt
+├── VIDEO_LINK.txt
+├── README.md
+└── .env.example

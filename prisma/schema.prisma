@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  MANAGER
+  STAFF
+  AUDITOR
+}
+
+enum GlobalRole {
+  USER
+  SUPERADMIN
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum TransferStatus {
+  REQUESTED
+  APPROVED
+  IN_TRANSIT
+  RECEIVED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum BatchStatus {
+  ACTIVE
+  DEPLETED
+  ARCHIVED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  CANCELLED
+}
+
+enum InventoryAdjustmentReason {
+  SHRINKAGE
+  DAMAGE
+  RECOUNT
+  MANUAL_CORRECTION
+}
+
+enum InventoryIssueReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  username                String    @unique
+  passwordHash            String
+  tokenVersion            Int       @default(0)
+  globalRole              GlobalRole @default(USER)
+  emailVerified           Boolean   @default(false)
+  emailVerifyToken        String?   @unique
+  emailVerifyExpiresAt    DateTime?
+  passwordResetToken      String?   @unique
+  passwordResetExpiresAt  DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  memberships   Membership[]
+  refreshTokens RefreshToken[]
+  stockTransfers StockTransfer[]
+  sales Sale[]
+  purchaseOrders PurchaseOrder[]
+  inventoryAdjustments InventoryAdjustment[]
+  issueReports InventoryIssueReport[]
+
+  @@index([email])
+  @@index([emailVerifyToken])
+  @@index([passwordResetToken])
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    TenantStatus @default(ACTIVE)
+  suspendedAt DateTime?
+  suspendedReason String?
+  deadStockAgeDays Int @default(30)
+  deadStockDiscountPercent Int @default(10)
+  deadStockCooldownHours Int @default(72)
+
+  memberships      Membership[]
+  warehouses       Warehouse[]
+  suppliers        Supplier[]
+  categories       Category[]
+  products         Product[]
+  inventoryBatches InventoryBatch[]
+  reservations     Reservation[]
+  stockTransfers   StockTransfer[]
+  sales            Sale[]
+  saleItems        SaleItem[]
+  purchaseOrders   PurchaseOrder[]
+  purchaseOrderItems PurchaseOrderItem[]
+  inventoryAdjustments InventoryAdjustment[]
+  issueReports InventoryIssueReport[]
+  auditLogs        AuditLog[]
+}
+
+model Membership {
+  id        String         @id @default(uuid())
+  tenantId  String
+  userId    String
+  role      MembershipRole @default(STAFF)
+  createdAt DateTime       @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId, role])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model Warehouse {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inventoryBatches InventoryBatch[]
+  reservations Reservation[]
+  outgoingTransfers StockTransfer[] @relation("FromWarehouse")
+  incomingTransfers StockTransfer[] @relation("ToWarehouse")
+  sales Sale[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+  purchaseOrders PurchaseOrder[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  tenantId    String
+  supplierId  String?
+  categoryId  String?
+  sku         String
+  barcode     String?
+  name        String
+  description String?
+  basePrice   Decimal  @db.Decimal(12, 2)
+  minSalePrice Decimal @db.Decimal(12, 2)
+  reorderPoint Int     @default(0)
+  reorderQuantity Int  @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  inventoryBatches InventoryBatch[]
+  reservationItems ReservationItem[]
+  stockTransferItems StockTransferItem[]
+  saleItems SaleItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  inventoryAdjustments InventoryAdjustment[]
+  issueReports InventoryIssueReport[]
+
+  @@unique([tenantId, sku])
+  @@unique([tenantId, barcode])
+  @@index([tenantId, isActive, createdAt])
+  @@index([tenantId, name])
+}
+
+model InventoryBatch {
+  id               String      @id @default(uuid())
+  tenantId         String
+  productId        String
+  warehouseId      String
+  status           BatchStatus @default(ACTIVE)
+  quantityOnHand   Int
+  reservedQuantity Int         @default(0)
+  unitCost         Decimal     @db.Decimal(12, 2)
+  salePrice        Decimal     @db.Decimal(12, 2)
+  minSalePrice     Decimal     @db.Decimal(12, 2)
+  discountPercent  Int         @default(0)
+  receivedAt       DateTime    @default(now())
+  expiryDate       DateTime?
+  lastDiscountAt   DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  adjustments InventoryAdjustment[]
+  issueReports InventoryIssueReport[]
+
+  @@index([tenantId, productId, warehouseId])
+  @@index([tenantId, warehouseId])
+  @@index([tenantId, receivedAt])
+  @@index([tenantId, lastDiscountAt])
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  tenantId  String
+  status    ReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  warehouseId String
+  customerName String?
+  customerEmail String?
+  idempotencyKey String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  items ReservationItem[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status, expiresAt])
+  @@index([tenantId, warehouseId, status])
+}
+
+model ReservationItem {
+  id            String @id @default(uuid())
+  reservationId String
+  productId     String
+  quantity      Int
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
+  @@index([productId])
+}
+
+model StockTransfer {
+  id              String         @id @default(uuid())
+  tenantId         String
+  fromWarehouseId  String
+  toWarehouseId    String
+  requestedById    String?
+  status           TransferStatus @default(REQUESTED)
+  createdAt        DateTime       @default(now())
+  completedAt      DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromWarehouse Warehouse @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouse Warehouse @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+  requestedBy User? @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  items StockTransferItem[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, fromWarehouseId])
+  @@index([tenantId, toWarehouseId])
+}
+
+model StockTransferItem {
+  id         String @id @default(uuid())
+  transferId String
+  productId  String
+  quantity   Int
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([transferId])
+  @@index([productId])
+}
+
+model Sale {
+  id          String     @id @default(uuid())
+  tenantId    String
+  warehouseId String
+  createdById String?
+  status      SaleStatus @default(COMPLETED)
+  totalAmount Decimal    @db.Decimal(12, 2)
+  createdAt   DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items SaleItem[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, warehouseId])
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  tenantId  String
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(12, 2)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, saleId])
+  @@index([tenantId, productId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+}
+
+
+model PurchaseOrder {
+  id          String              @id @default(uuid())
+  tenantId    String
+  supplierId  String
+  createdById String?
+  status      PurchaseOrderStatus @default(DRAFT)
+  expectedAt  DateTime?
+  totalAmount Decimal             @default(0) @db.Decimal(12, 2)
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  confirmedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items PurchaseOrderItem[]
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, supplierId])
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(uuid())
+  tenantId        String
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Decimal @db.Decimal(12, 2)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, purchaseOrderId])
+  @@index([tenantId, productId])
+}
+
+model InventoryAdjustment {
+  id          String                    @id @default(uuid())
+  tenantId    String
+  batchId     String
+  productId   String
+  actorUserId String?
+  oldQuantity Int
+  newQuantity Int
+  reason      InventoryAdjustmentReason
+  note        String?
+  createdAt   DateTime                  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  batch InventoryBatch @relation(fields: [batchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, batchId])
+  @@index([actorUserId])
+}
+
+
+model InventoryIssueReport {
+  id              String                     @id @default(uuid())
+  tenantId        String
+  batchId         String
+  productId       String
+  reportedById    String?
+  resolvedById    String?
+  oldQuantity     Int
+  proposedQuantity Int
+  reason          InventoryAdjustmentReason
+  note            String?
+  status          InventoryIssueReportStatus @default(PENDING)
+  resolutionNote  String?
+  createdAt       DateTime                   @default(now())
+  resolvedAt      DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  batch InventoryBatch @relation(fields: [batchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  reportedBy User? @relation(fields: [reportedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, batchId])
+  @@index([reportedById])
+}

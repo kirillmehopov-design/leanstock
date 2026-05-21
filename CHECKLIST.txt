@@ -1,0 +1,20 @@
+[x] Application has Docker Compose for backend + frontend + PostgreSQL 15 + Redis + worker
+[x] docker compose up boots the entire local stack
+[x] Swagger/OpenAPI is mounted at /docs and openapi.yaml is included
+[x] Auth endpoints exist: register, verify email, login, refresh, logout, password reset
+[x] Real email providers supported: SMTP/Gmail App Password and Resend; mock only for local tests
+[x] Email verification and password reset are queued through BullMQ email worker
+[x] At least 3 required LeanStock business event emails implemented: low-stock alert, purchase order confirmation, inventory transfer receipt
+[x] RBAC implemented for OWNER, MANAGER, STAFF, AUDITOR and SUPERADMIN
+[x] Tenant isolation is resolved from JWT user membership; no X-Tenant-Id header needed
+[x] Product catalog CRUD implemented with sku/barcode/reorder rules
+[x] Warehouse, supplier, category, inventory batch, reservation, sale, transfer workflows implemented
+[x] Purchase order workflow implemented: create, list, get, confirm, cancel
+[x] Forecasting endpoint implemented: moving-average reorder suggestions
+[x] Dead-stock decay worker and manual trigger implemented
+[x] Reservation TTL and expiry worker implemented
+[x] Redis used for rate limiting, BullMQ queues and inventory locks
+[x] Tests directory included for unit and integration tests
+[ ] DEPLOYED_URL.txt must be filled after DeployRocks deployment
+[ ] VIDEO_LINK.txt must be filled with 4-6 minute unlisted defense video
+[ ] Production secrets must be configured in DeployRocks environment variables

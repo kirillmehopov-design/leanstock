@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LeanStock Demo Frontend</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: rgba(15, 23, 42, 0.92);
+      --panel-2: rgba(30, 41, 59, 0.78);
+      --line: #263244;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --soft: #cbd5e1;
+      --brand: #38bdf8;
+      --brand-2: #2563eb;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #fb7185;
+      --purple: #a78bfa;
+      --shadow: 0 22px 70px rgba(0, 0, 0, .35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% -10%, rgba(56, 189, 248, .28), transparent 32%),
+        radial-gradient(circle at 92% 10%, rgba(167, 139, 250, .22), transparent 28%),
+        linear-gradient(135deg, #020617 0%, #0b1120 48%, #111827 100%);
+    }
+
+    a { color: var(--brand); }
+    button, input, textarea, select { font: inherit; }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: white;
+      background: linear-gradient(135deg, var(--brand-2), #0ea5e9);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+      box-shadow: 0 12px 28px rgba(37, 99, 235, .22);
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 15px 34px rgba(37, 99, 235, .30); }
+    button:active { transform: translateY(0); }
+    button.secondary { background: #1e293b; color: var(--soft); border: 1px solid var(--line); box-shadow: none; }
+    button.ghost { background: transparent; border: 1px solid var(--line); color: var(--soft); box-shadow: none; }
+    button.danger { background: linear-gradient(135deg, #e11d48, #fb7185); }
+    button.ok { background: linear-gradient(135deg, #16a34a, #22c55e); }
+    button.warn { background: linear-gradient(135deg, #b45309, #f59e0b); }
+    button:disabled { opacity: .48; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      background: rgba(2, 6, 23, .62);
+      color: var(--text);
+      padding: 11px 12px;
+      outline: none;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(56, 189, 248, .12); }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 5px; }
+
+    .app { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 22px 18px;
+      background: rgba(2, 6, 23, .72);
+      border-right: 1px solid rgba(148, 163, 184, .18);
+      backdrop-filter: blur(20px);
+      overflow: auto;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .logo {
+      width: 44px; height: 44px; display: grid; place-items: center;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #38bdf8, #2563eb 55%, #7c3aed);
+      box-shadow: 0 16px 40px rgba(56, 189, 248, .25);
+      font-size: 24px;
+    }
+    .brand h1 { margin: 0; font-size: 18px; line-height: 1.1; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+    .nav { display: grid; gap: 8px; }
+    .nav a {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--soft); text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 13px;
+      border: 1px solid transparent;
+    }
+    .nav a:hover { background: rgba(30, 41, 59, .7); border-color: rgba(148, 163, 184, .12); }
+    .nav a.active { background: rgba(14, 165, 233, .15); border-color: rgba(56,189,248,.38); color: #e0f2fe; }
+    .nav a.locked { opacity: .45; }
+    .nav a.locked::after { content: 'locked'; margin-left: auto; font-size: 10px; color: var(--warn); text-transform: uppercase; letter-spacing: .08em; }
+    .nav .hint { margin: 16px 0 8px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .14em; }
+
+    .main { padding: 26px; max-width: 1480px; width: 100%; margin: 0 auto; }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid rgba(148,163,184,.14);
+      border-radius: 18px;
+      background: rgba(15,23,42,.62);
+      box-shadow: 0 12px 40px rgba(0,0,0,.18);
+    }
+    .page-header h2 { margin: 0; font-size: 22px; }
+    .page-header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+    .hero.page-section.active { display: grid; }
+    .access-panel {
+      display: none;
+      padding: 18px;
+      margin-bottom: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(245,158,11,.32);
+      background: rgba(245,158,11,.10);
+      color: #fde68a;
+    }
+    .access-panel.active { display: block; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+    .hero-card, .card {
+      background: var(--panel);
+      border: 1px solid rgba(148, 163, 184, .18);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero-card { padding: 24px; overflow: hidden; position: relative; }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -70px -90px auto;
+      width: 230px; height: 230px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, .13);
+      filter: blur(4px);
+    }
+    .hero h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.05; }
+    .hero p { color: var(--muted); line-height: 1.65; max-width: 800px; }
+
+    .status-card { padding: 18px; display: grid; gap: 12px; }
+    .status-line { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; background: rgba(15, 23, 42, .65); border-radius: 14px; border: 1px solid rgba(148,163,184,.1); }
+    .status-line span:first-child { color: var(--muted); font-size: 13px; }
+    .status-line span:last-child { font-weight: 800; text-align: right; }
+
+    .section { margin: 18px 0; scroll-margin-top: 16px; }
+    .section-title { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin: 0 0 12px; }
+    .section-title h3 { margin: 0; font-size: 22px; }
+    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .col-12 { grid-column: span 12; }
+    .col-8 { grid-column: span 8; }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-3 { grid-column: span 3; }
+    .card { padding: 16px; }
+    .card h4 { margin: 0 0 4px; font-size: 16px; }
+    .card .desc { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0 0 12px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .account-note {
+      padding: 11px 12px;
+      border: 1px dashed rgba(56,189,248,.42);
+      border-radius: 12px;
+      background: rgba(14,165,233,.10);
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .workflow-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    .workflow-step { padding: 12px; border-radius: 14px; border: 1px solid rgba(148,163,184,.14); background: rgba(15,23,42,.72); }
+    .workflow-step b { display: block; color: #e0f2fe; margin-bottom: 3px; }
+    .workflow-step span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    .role-tabs { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+    .role-tab {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.16);
+      background: rgba(15, 23, 42, .75);
+      cursor: pointer;
+    }
+    .role-tab.active { border-color: rgba(56,189,248,.75); background: rgba(14, 165, 233, .14); }
+    .role-tab strong { display: block; }
+    .role-tab small { display: block; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 9px; font-size: 12px; font-weight: 800; background: rgba(30, 41, 59, .75); border: 1px solid rgba(148,163,184,.15); color: var(--soft); }
+    .pill.ok { color: #bbf7d0; border-color: rgba(34,197,94,.25); background: rgba(22,163,74,.13); }
+    .pill.warn { color: #fde68a; border-color: rgba(245,158,11,.25); background: rgba(245,158,11,.13); }
+    .pill.bad { color: #fecdd3; border-color: rgba(251,113,133,.28); background: rgba(251,113,133,.12); }
+    .pill.blue { color: #bae6fd; border-color: rgba(56,189,248,.25); background: rgba(14,165,233,.13); }
+    .pill.purple { color: #ddd6fe; border-color: rgba(167,139,250,.28); background: rgba(124,58,237,.13); }
+
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 14px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid rgba(148,163,184,.12); text-align: left; font-size: 13px; }
+    th { color: var(--muted); background: rgba(15, 23, 42, .72); }
+    td { color: var(--soft); }
+    .check { color: #86efac; font-weight: 900; }
+    .cross { color: #fb7185; font-weight: 900; }
+
+    .response-wrap { display: grid; grid-template-columns: 1fr 360px; gap: 14px; }
+    pre {
+      margin: 0;
+      min-height: 360px;
+      max-height: 560px;
+      overflow: auto;
+      padding: 16px;
+      border-radius: 16px;
+      background: #020617;
+      border: 1px solid rgba(148,163,184,.14);
+      color: #dbeafe;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .log-list { max-height: 560px; overflow: auto; display: grid; gap: 8px; }
+    .log-item { padding: 10px; border-radius: 13px; background: rgba(15,23,42,.68); border: 1px solid rgba(148,163,184,.11); font-size: 12px; color: var(--soft); }
+    .log-item strong { display: block; margin-bottom: 3px; }
+    .log-item.ok strong { color: #86efac; }
+    .log-item.bad strong { color: #fda4af; }
+    .log-item.warn strong { color: #fde68a; }
+
+    .toast-zone { position: fixed; z-index: 99; right: 18px; top: 18px; display: grid; gap: 10px; width: min(420px, calc(100vw - 36px)); }
+    .toast { padding: 13px 14px; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid rgba(148,163,184,.2); background: rgba(15,23,42,.96); animation: slideIn .22s ease-out; }
+    .toast strong { display: block; margin-bottom: 3px; }
+    .toast p { margin: 0; color: var(--muted); font-size: 13px; }
+    .toast.ok { border-color: rgba(34,197,94,.45); }
+    .toast.bad { border-color: rgba(251,113,133,.45); }
+    .toast.warn { border-color: rgba(245,158,11,.45); }
+    @keyframes slideIn { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .muted { color: var(--muted); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .divider { height: 1px; background: rgba(148,163,184,.13); margin: 14px 0; }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; }
+      .hero, .response-wrap { grid-template-columns: 1fr; }
+      .role-tabs, .workflow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .col-8, .col-6, .col-4, .col-3 { grid-column: span 12; }
+    }
+    @media (max-width: 680px) {
+      .main { padding: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .role-tabs, .workflow-steps { grid-template-columns: 1fr; }
+      .section-title { align-items: start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast-zone" id="toastZone"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">📦</div>
+        <div>
+          <h1>LeanStock</h1>
+          <p>Final defense frontend</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="hint">Defense pages</div>
+        <a href="#/overview" data-page-link="overview">🏠 Dashboard</a>
+        <a href="#/auth" data-page-link="auth">🔐 Auth & role setup</a>
+        <a href="#/inventory" data-page-link="inventory">🏬 Warehouse & inventory</a>
+        <a href="#/orders" data-page-link="orders">🧾 Reservation / sale / PO</a>
+        <a href="#/reports" data-page-link="reports">📊 Reports, audit, jobs</a>
+        <a href="#/platform" data-page-link="platform">🛡 Platform admin</a>
+        <div class="hint">Current single session</div>
+        <div id="sidebarSession" class="small">Not logged in.</div>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <h2 id="pageTitle">Overview</h2>
+          <p id="pageSubtitle">Основные LeanStock workflow разложены по отдельным страницам без лишних demo-блоков.</p>
+        </div>
+        <div class="pill-row" style="margin:0;" id="pageRolePills"></div>
+      </div>
+      <div id="accessPanel" class="access-panel"></div>
+      <section id="overview" class="hero page-section">
+        <div class="hero-card">
+          <h2>Production-style demo for LeanStock backend</h2>
+          <p>
+            Frontend consumes the real backend API and demonstrates only the required LeanStock workflows: auth, RBAC,
+            warehouse inventory, reservations, transfers, purchase orders, reports, workers and platform controls.
+          </p>
+          <div class="form-grid">
+            <div class="full"><label>Backend API base URL</label><input id="apiBase" value="http://localhost:3000/api/v1" /></div>
+          </div>
+          <div class="actions">
+            <button data-action="saveApiBase">Save API base</button>
+            <button class="secondary" data-action="health">Health check</button>
+            <button class="secondary" data-action="openDocs">Swagger docs</button>
+          </div>
+          <div class="workflow-steps">
+            <div class="workflow-step"><b>1. Auth</b><span>Register, verify by email link or token, then login.</span></div>
+            <div class="workflow-step"><b>2. Tenant work</b><span>OWNER/MANAGER manage catalog and inventory.</span></div>
+            <div class="workflow-step"><b>3. Operations</b><span>Reservations, transfers, purchase orders and emails.</span></div>
+            <div class="workflow-step"><b>4. Control</b><span>Reports/audit for tenant roles, platform page for SUPERADMIN.</span></div>
+          </div>
+          <div class="pill-row" id="idPills"></div>
+        </div>
+        <div class="status-card hero-card">
+          <div class="status-line"><span>Active role</span><span id="activeRoleText">OWNER</span></div>
+          <div class="status-line"><span>Login status</span><span id="loginStatusText">Not logged in</span></div>
+          <div class="status-line"><span>API</span><span class="mono" id="apiStatusText">localhost</span></div>
+          <button class="secondary" data-action="openDocs">Open Swagger /docs</button>
+        </div>
+      </section>
+
+      <section id="auth" class="section page-section">
+        <div class="section-title">
+          <div>
+            <h3>1. Auth, verification and roles</h3>
+            <p>Без роли пользователь может только register, verify email, login/logout и password reset. Frontend держит только одну активную login-сессию: новый login очищает прошлую роль.</p>
+          </div>
+        </div>
+
+        <div class="role-tabs" id="roleTabs"></div>
+
+        <div class="grid" id="roleCards"></div>
+
+        <div class="grid" style="margin-top:14px;">
+          <div class="card col-12">
+            <h4>Password reset</h4>
+            <p class="desc">Проверка обязательного workflow из ТЗ: reset link/token отправляется на реальный email через worker. После reset backend инвалидирует старые токены, а frontend сразу разлогинивает текущую сессию.</p>
+            <div class="form-grid">
+              <div><label>Email</label><input id="resetEmail" placeholder="user@example.com" /></div>
+              <div><label>New password you want</label><input id="newPassword" type="password" placeholder="Enter the new password you want" /></div>
+              <div class="full"><label>Reset token from email</label><input id="resetToken" placeholder="Paste reset token from Gmail, or open the reset link from email" /></div>
+            </div>
+            <div class="actions">
+              <button data-action="requestReset">Request reset email</button>
+              <button class="secondary" data-action="resetPassword">Set this new password</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="inventory" class="section page-section">
+        <div class="section-title">
+          <div>
+            <h3>2. Warehouse, catalog, product and inventory</h3>
+            <p>Основной LeanStock flow: склады, поставщик, категория, продукт, партия товара, recount adjustment.</p>
+          </div>
+          <span class="pill blue">Uses active tenant role</span>
+        </div>
+        <div class="grid">
+          <div class="card col-4">
+            <h4>Warehouses</h4>
+            <p class="desc">OWNER/MANAGER создают и обновляют склады. Write actions enqueue real email to OWNER/MANAGER. STAFF/AUDITOR должны получить 403.</p>
+            <div class="form-grid">
+              <div><label>Warehouse A name</label><input id="warehouseAName" value="Main Store" /></div>
+              <div><label>Warehouse A address</label><input id="warehouseAAddress" value="Dostyk Plaza" /></div>
+              <div><label>Warehouse B name</label><input id="warehouseBName" value="Warehouse" /></div>
+              <div><label>Warehouse B address</label><input id="warehouseBAddress" value="Ryskulov street" /></div>
+            </div>
+            <div class="actions">
+              <button data-action="createWarehouseA">Create A</button>
+              <button data-action="createWarehouseB">Create B</button>
+              <button class="secondary" data-action="updateWarehouseA">Update A</button>
+              <button class="secondary" data-action="updateWarehouseB">Update B</button>
+              <button class="secondary" data-action="listWarehouses">List</button>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <h4>Supplier & category</h4>
+            <p class="desc">Нужно для product catalog и purchase order workflow. Supplier/category are CRUD actions; required emails are low-stock, PO confirmation and transfer receipt.</p>
+            <div class="form-grid">
+              <div><label>Supplier name</label><input id="supplierName" value="Almaty Dairy Supplier" /></div>
+              <div><label>Supplier phone</label><input id="supplierPhone" value="+77001112233" /></div>
+              <div><label>Supplier email</label><input id="supplierEmail" placeholder="supplier@example.com" /></div>
+              <div><label>Category</label><input id="categoryName" value="Dairy" /></div>
+            </div>
+            <div class="actions">
+              <button data-action="createSupplier">Create supplier</button>
+              <button data-action="createCategory">Create category</button>
+              <button class="secondary" data-action="listSuppliers">Suppliers</button>
+              <button class="secondary" data-action="listCategories">Categories</button>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <h4>Product catalog</h4>
+            <p class="desc">Полный multi-tenant product catalog с CRUD: create, read, update и archive/delete. Mutation buttons enqueue real email notifications.</p>
+            <div class="form-grid">
+              <div><label>SKU</label><input id="productSku" value="MILK-1L" /></div>
+              <div><label>Barcode</label><input id="productBarcode" value="MILK-1L-BARCODE" /></div>
+              <div class="full"><label>Name</label><input id="productName" value="Milk 1L" /></div>
+              <div><label>Base price</label><input id="basePrice" type="number" value="520" /></div>
+              <div><label>Min sale price</label><input id="minSalePrice" type="number" value="350" /></div>
+              <div><label>Reorder point</label><input id="reorderPoint" type="number" value="150" /></div>
+              <div><label>Reorder quantity</label><input id="reorderQuantity" type="number" value="40" /></div>
+            </div>
+            <div class="actions">
+              <button data-action="createProduct">Create product</button>
+              <button class="secondary" data-action="getProductDetails">Read product</button>
+              <button class="secondary" data-action="updateProductRules">Update reorder rules</button>
+              <button class="secondary" data-action="listProducts">List products</button>
+              <button class="danger" data-action="archiveProduct">Archive product</button>
+            </div>
+          </div>
+
+          <div class="card col-6">
+            <h4>Inventory batch, adjustment & issue approval</h4>
+            <p class="desc">Приём партии товара, direct manager adjustment, and STAFF damaged/missing report for manager approval. Write actions enqueue real email; low-stock also triggers required manager alert.</p>
+            <div class="form-grid">
+              <div><label>Quantity</label><input id="quantityOnHand" type="number" value="100" /></div>
+              <div><label>Unit cost</label><input id="unitCost" type="number" value="300" /></div>
+              <div><label>Sale price</label><input id="salePrice" type="number" value="520" /></div>
+              <div><label>New quantity after recount</label><input id="newQuantityOnHand" type="number" value="95" /></div>
+              <div><label>Adjustment reason</label><select id="adjustReason"><option>RECOUNT</option><option>SHRINKAGE</option><option>DAMAGE</option><option>MANUAL_CORRECTION</option></select></div>
+              <div><label>Adjustment note</label><input id="adjustNote" value="Manual physical recount" /></div>
+              <div><label>Issue proposed quantity</label><input id="issueProposedQuantity" type="number" value="90" /></div>
+              <div><label>Issue reason</label><select id="issueReason"><option>DAMAGE</option><option>SHRINKAGE</option><option>RECOUNT</option><option>MANUAL_CORRECTION</option></select></div>
+              <div class="full"><label>Issue note</label><input id="issueNote" value="STAFF reported damaged or missing units" /></div>
+            </div>
+            <div class="actions">
+              <button data-action="receiveInventory">Receive inventory</button>
+              <button class="warn" data-action="triggerLowStockEmailDemo">Trigger low-stock email</button>
+              <button class="secondary" data-action="adjustInventory">Direct adjustment</button>
+              <button data-action="reportInventoryIssue">Report issue</button>
+              <button class="ok" data-action="approveInventoryIssue">Approve issue</button>
+              <button class="danger" data-action="rejectInventoryIssue">Reject issue</button>
+              <button class="secondary" data-action="listInventoryIssues">List issues</button>
+            </div>
+          </div>
+
+          <div class="card col-6">
+            <h4>Quick data loading</h4>
+            <p class="desc">Эти кнопки помогают подтянуть IDs из базы, если страница перезагрузилась.</p>
+            <div class="actions">
+              <button class="secondary" data-action="listWarehouses">Load warehouses</button>
+              <button class="secondary" data-action="listSuppliers">Load suppliers</button>
+              <button class="secondary" data-action="listCategories">Load categories</button>
+              <button class="secondary" data-action="listProducts">Load products</button>
+              <button class="secondary" data-action="inventorySnapshot">Inventory snapshot</button>
+            </div>
+            <div class="divider"></div>
+            <p class="small">Если action требует productId/warehouseId/supplierId, сначала создай или загрузи соответствующие данные. Email по ТЗ приходит не на каждое действие, а на нужные business events: low-stock, transfer receipt, purchase order confirmation.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="orders" class="section page-section">
+        <div class="section-title">
+          <div>
+            <h3>3. Reservation, sale, transfer and purchase order</h3>
+            <p>Три business workflows для финальной защиты: checkout reservation, inter-location transfer, supplier purchase order.</p>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="card col-3">
+            <h4>Reservation checkout</h4>
+            <p class="desc">Создаёт reservation с idempotency key и Redis lock на inventory.</p>
+            <label>Customer name</label><input id="customerName" value="Demo Customer" />
+            <label>Customer email</label><input id="customerEmail" placeholder="customer@example.com" />
+            <label>Quantity</label><input id="reservationQty" type="number" value="3" />
+            <div class="actions">
+              <button data-action="createReservation">Create reservation</button>
+              <button class="ok" data-action="confirmReservation">Confirm sale</button>
+              <button class="secondary" data-action="listReservations">List</button>
+            </div>
+          </div>
+
+          <div class="card col-3">
+            <h4>Transfer state machine</h4>
+            <p class="desc">Blueprint flow: REQUESTED → APPROVED → IN_TRANSIT → RECEIVED. Stock moves only on Receive.</p>
+            <label>Transfer quantity</label><input id="transferQty" type="number" value="7" />
+            <div class="actions">
+              <button data-action="createTransfer">Create request</button>
+              <button class="ok" data-action="approveTransfer">Approve</button>
+              <button class="secondary" data-action="dispatchTransfer">Dispatch</button>
+              <button class="ok" data-action="receiveTransfer">Receive</button>
+              <button class="danger" data-action="cancelTransfer">Cancel</button>
+              <button class="secondary" data-action="listTransfers">List</button>
+            </div>
+          </div>
+
+          <div class="card col-3">
+            <h4>Purchase order</h4>
+            <p class="desc">Supplier workflow: create, confirm, cancel, list.</p>
+            <label>PO quantity</label><input id="poQty" type="number" value="50" />
+            <label>Expected date</label><input id="poExpectedAt" value="2026-06-01T10:00:00.000Z" />
+            <div class="actions">
+              <button data-action="createPurchaseOrder">Create PO</button>
+              <button class="ok" data-action="confirmPurchaseOrder">Confirm PO</button>
+              <button class="warn" data-action="cancelPurchaseOrder">Cancel PO</button>
+              <button class="secondary" data-action="listPurchaseOrders">List PO</button>
+            </div>
+          </div>
+
+          <div class="card col-3">
+            <h4>Sales</h4>
+            <p class="desc">Sales list and manual real email notification allowed only for OWNER/MANAGER. Manual email is queued by worker.</p>
+            <div class="actions">
+              <button class="secondary" data-action="listSales">List sales</button>
+              
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reports" class="section page-section">
+        <div class="section-title">
+          <div>
+            <h3>4. Reports, audit and background jobs</h3>
+            <p>Отчёты, worker queue visibility и dead-stock background processing.</p>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="card col-4">
+            <h4>Reports</h4>
+            <p class="desc">Доступны OWNER, MANAGER, AUDITOR. AUDITOR читает, но не меняет данные.</p>
+            <div class="actions">
+              <button data-action="lowStock">Low stock</button>
+              <button data-action="deadStockReport">Dead stock</button>
+              <button data-action="forecast">Forecast</button>
+              <button data-action="inventorySnapshot">Snapshot</button>
+            </div>
+          </div>
+          <div class="card col-4">
+            <h4>Dead stock worker & policy</h4>
+            <p class="desc">Configurable tenant policy + immediate decay or Redis/BullMQ queued job.</p>
+            <div class="form-grid">
+              <div><label>Age days</label><input id="deadStockAgeDays" type="number" value="30" /></div>
+              <div><label>Discount %</label><input id="deadStockDiscountPercent" type="number" value="10" /></div>
+              <div class="full"><label>Cooldown hours</label><input id="deadStockCooldownHours" type="number" value="72" /></div>
+            </div>
+            <div class="actions">
+              <button class="secondary" data-action="getDeadStockPolicy">Get policy</button>
+              <button data-action="updateDeadStockPolicy">Update policy</button>
+              <button class="warn" data-action="runDeadStockDecay">Run decay now</button>
+              <button class="secondary" data-action="triggerDeadStock">Trigger queue</button>
+              <button class="secondary" data-action="queueStatus">Queue status</button>
+            </div>
+          </div>
+          <div class="card col-4">
+            <h4>Audit logs</h4>
+            <p class="desc">Журнал действий: кто и что сделал в tenant.</p>
+            <div class="actions">
+              <button data-action="auditLogs">Tenant audit logs</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="platform" class="section page-section">
+        <div class="section-title">
+          <div>
+            <h3>5. Platform admin</h3>
+            <p>Только SUPERADMIN. Он управляет tenants на platform level, а не складами конкретного tenant.</p>
+          </div>
+          <span class="pill purple">Requires SUPERADMIN token</span>
+        </div>
+        <div class="grid">
+          <div class="card col-4">
+            <h4>Tenant control</h4>
+            <label>Tenant ID</label><input id="platformTenantId" placeholder="tenant id" />
+            <label>Suspend reason</label><input id="suspendReason" value="Final defense role demo" />
+            <div class="actions">
+              <button data-action="platformTenants">List tenants</button>
+              <button class="warn" data-action="suspendTenant">Suspend</button>
+              <button class="ok" data-action="reactivateTenant">Reactivate</button>
+            </div>
+          </div>
+          <div class="card col-4">
+            <h4>Platform metrics & logs</h4>
+            <p class="desc">Global visibility для SUPERADMIN.</p>
+            <div class="actions">
+              <button data-action="platformMetrics">Metrics</button>
+              <button class="secondary" data-action="platformAuditLogs">Platform audit logs</button>
+            </div>
+          </div>
+          <div class="card col-4">
+            <h4>Force password reset</h4>
+            <p class="desc">Безопасность: SUPERADMIN может принудительно отправить reset email пользователю.</p>
+            <label>User ID</label><input id="forceResetUserId" placeholder="owner user id" />
+            <label>Reason</label><input id="forceResetReason" value="Security incident demo" />
+            <div class="actions"><button class="warn" data-action="forcePasswordReset">Force reset</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="response" class="section page-section">
+        <div class="section-title">
+          <div>
+            <h3>Developer response & logs</h3>
+            <p>Этот блок скрыт из обычной навигации. Он нужен только для защиты/отладки и доступен не всем ролям.</p>
+          </div>
+          <div class="actions" style="margin:0;"><button class="secondary" data-action="clearLogs">Clear logs</button></div>
+        </div>
+        <div class="response-wrap">
+          <pre id="out">Ready. Start with API health check, then register/verify/login OWNER.</pre>
+          <div class="card">
+            <h4>Notification center</h4>
+            <p class="desc">Уведомления появляются при login, success, validation/RBAC errors.</p>
+            <div class="log-list" id="logList"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

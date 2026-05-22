@@ -139,7 +139,7 @@ let logs = [];
 function loadState() {
   const saved = JSON.parse(localStorage.getItem('leanstockFinalState') || '{}');
   return {
-    apiBase: saved.apiBase || 'https://leanstock-production-8747.up.railway.app/',
+    apiBase: saved.apiBase || 'https://leanstock-production-8747.up.railway.app/api/v1',
     activeRole: saved.activeRole || 'OWNER',
     activePage: PAGES[saved.activePage] ? saved.activePage : getPageFromLocation(),
     accounts: { ...structuredClone(DEFAULT_ACCOUNTS), ...(saved.accounts || {}) },

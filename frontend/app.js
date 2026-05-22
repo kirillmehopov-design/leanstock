@@ -457,7 +457,12 @@ function setActiveRole(role) {
   state.activeRole = role;
   persist();
   render();
-  toast('ok', 'Active role selected', activeToken(role) ? `Now using ${role} token for protected actions.` : `${role} selected. Login is required before protected actions. The frontend keeps only one active login session at a time.`);
+  // FIX: если у роли нет токена — это просто выбор вкладки, не "сессия".
+  if (activeToken(role)) {
+    toast('ok', 'Active role selected', `Now using ${role} token for protected actions.`);
+  } else {
+    toast('warn', 'Role selected (not logged in)', `${role} selected. You must Login before protected actions.`);
+  }
 }
  
 function rememberAuth(role, result) {
@@ -1200,12 +1205,14 @@ function renderPills() {
 function renderStatus() {
   const role = state.activeRole;
   const logged = Boolean(activeToken(role));
-  $('activeRoleText').textContent = role;
+  $('activeRoleText').textContent = logged ? role : '—';
   $('loginStatusText').textContent = logged ? `Logged in as ${role}` : 'Not logged in';
   $('apiStatusText').textContent = apiBase();
-  $('sidebarSession').innerHTML = `
+  // FIX: пока нет токена — не показываем конкретную роль как активную сессию.
+  $('sidebarSession').innerHTML = logged
+    ? `
     <div class="pill-row">
-      <span class="pill ${logged ? 'ok' : 'bad'}">${logged ? 'Logged in' : 'No token'}</span>
+      <span class="pill ok">Logged in</span>
       <span class="pill blue">${escapeHtml(role)}</span>
     </div>
     <div style="margin-top:8px;" class="mono">${escapeHtml(account(role).email)}</div>
@@ -1214,6 +1221,12 @@ function renderStatus() {
       <button class="secondary" data-action="refreshCurrentToken">Refresh token</button>
       <button class="secondary" data-action="logoutCurrent">Logout</button>
     </div>
+  `
+    : `
+    <div class="pill-row">
+      <span class="pill bad">No active session</span>
+    </div>
+    <div class="small" style="margin-top:8px;">Login a role to start a session.</div>
   `;
 }
  

@@ -1,3 +1,4 @@
 
-https://pacific-heart-production-06e5.up.railway.app/#/auth
-its broken( chech video url for check its works with railway + email notifaction before its getting broke
+https://pacific-heart-production-c8c3.up.railway.app/#/auth
+its broken( check video url for check its works with railway + email notifaction before its getting broke )
+P.S fix it 
